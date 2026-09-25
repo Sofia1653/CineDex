@@ -4,14 +4,10 @@ O domínio foi organizado como esquema estrela para suportar consultas
 analíticas, mantendo relações de navegação úteis para a futura API.
 """
 
-from datetime import date, datetime
+from datetime import date
 from decimal import Decimal
-from hashlib import sha256
-from typing import Literal
-from uuid import uuid4
 
 from sqlalchemy import (
-    CheckConstraint,
     Column,
     Date,
     Double,
@@ -20,19 +16,10 @@ from sqlalchemy import (
     Numeric,
     String,
     Table,
-    UniqueConstraint,
-    func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.db.base import Base
-
-
-def generate_surrogate_key() -> str:
-    """Gera uma chave substituta textual no formato SHA-256."""
-
-    return sha256(uuid4().bytes).hexdigest()
-
+from app.db.base import Base, generate_surrogate_key
 
 bridge_movie_genre = Table(
     "bridge_movie_genre",
@@ -157,35 +144,6 @@ class DimCompany(Base):
     )
 
 
-PERSON_TYPES: tuple[str, ...] = ("Ator", "Diretor", "Roteirista")
-PersonType = Literal["Ator", "Diretor", "Roteirista"]
-
-
-class DimPerson(Base):
-    """Pessoa associada a um filme em um papel específico."""
-
-    __tablename__ = "dim_people"
-    __table_args__ = (
-        UniqueConstraint(
-            "nome_pessoa", "tipo_pessoa", name="uq_dim_people_nome_pessoa_tipo_pessoa"
-        ),
-        CheckConstraint(
-            "tipo_pessoa IN (" + ", ".join(f"'{value}'" for value in PERSON_TYPES) + ")",
-            name="tipo_pessoa_valido",
-        ),
-    )
-
-    sk_person_id: Mapped[str] = mapped_column(
-        String(64), primary_key=True, default=generate_surrogate_key
-    )
-    nome_pessoa: Mapped[str] = mapped_column(String(255), index=True)
-    tipo_pessoa: Mapped[PersonType] = mapped_column(String(20))
-
-    movies: Mapped[list[DimMovie]] = relationship(
-        secondary=bridge_movie_person, back_populates="people"
-    )
-
-
 class FactMoviePerformance(Base):
     """Métricas financeiras e de engajamento; uma ocorrência por filme."""
 
@@ -209,38 +167,24 @@ class FactMoviePerformance(Base):
     movie: Mapped[DimMovie] = relationship(back_populates="performance")
 
 
-class MovieReview(Base):
-    """Avaliação individual de um filme na escala de 0 a 10."""
+# Reexporta os modelos e tipos dos domínios people e reviews para retrocompatibilidade
+from app.people.models import PERSON_TYPES, DimPerson, PersonType  # noqa: E402
+from app.reviews.models import DimReview, MovieReview  # noqa: E402
 
-    __tablename__ = "movie_reviews"
-    __table_args__ = (CheckConstraint("nota >= 0 AND nota <= 10", name="nota_range"),)
+__all__ = [
+    "Base",
+    "DimCompany",
+    "DimGenre",
+    "DimMovie",
+    "DimPerson",
+    "DimReview",
+    "FactMoviePerformance",
+    "MovieReview",
+    "PERSON_TYPES",
+    "PersonType",
+    "bridge_movie_company",
+    "bridge_movie_genre",
+    "bridge_movie_person",
+    "generate_surrogate_key",
+]
 
-    sk_movie_review_id: Mapped[str] = mapped_column(
-        String(64), primary_key=True, default=generate_surrogate_key
-    )
-    sk_movie_id: Mapped[str] = mapped_column(
-        String(64), ForeignKey("dim_movies.sk_movie_id", ondelete="CASCADE"), index=True
-    )
-    nome: Mapped[str] = mapped_column(String(120))
-    nota: Mapped[float] = mapped_column(Double)
-    comentario: Mapped[str] = mapped_column(String(4000))
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
-
-    movie: Mapped[DimMovie] = relationship(back_populates="reviews")
-
-
-class DimReview(Base):
-    """Resumo consolidado de avaliações por filme."""
-
-    __tablename__ = "dim_reviews"
-
-    sk_review_id: Mapped[str] = mapped_column(
-        String(64), primary_key=True, default=generate_surrogate_key
-    )
-    sk_movie_id: Mapped[str] = mapped_column(
-        String(64), ForeignKey("dim_movies.sk_movie_id", ondelete="CASCADE"), unique=True
-    )
-    qtd_avaliacoes_usuarios: Mapped[int] = mapped_column(Integer, default=0)
-    nota_media_usuarios: Mapped[float | None] = mapped_column(Double, default=None)
-
-    movie: Mapped[DimMovie] = relationship(back_populates="reviews_summary")

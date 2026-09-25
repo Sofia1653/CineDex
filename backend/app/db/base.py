@@ -1,3 +1,6 @@
+from hashlib import sha256
+from uuid import uuid4
+
 from sqlalchemy import MetaData
 from sqlalchemy.orm import DeclarativeBase
 
@@ -10,7 +13,14 @@ NAMING_CONVENTION = {
 }
 
 
+def generate_surrogate_key() -> str:
+    """Gera uma chave substituta textual no formato SHA-256."""
+
+    return sha256(uuid4().bytes).hexdigest()
+
+
 class Base(DeclarativeBase):
     """Classe declarativa comum a todos os modelos ORM."""
 
     metadata = MetaData(naming_convention=NAMING_CONVENTION)
+
