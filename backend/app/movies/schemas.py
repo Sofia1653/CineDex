@@ -9,11 +9,11 @@ class MovieBase(BaseModel):
     duracao_minutos: int | None = None
     status_filme: str | None = None
     sinopse: str | None = None
-    url_poster: HttpUrl | str | None = None
-    url_backdrop: HttpUrl | str | None = None
+    url_poster: HttpUrl | None = None
+    url_backdrop: HttpUrl | None = None
 
 class MovieCreate(MovieBase):
-    id_filme: str | None = None  # Se omitido, pode ser gerado no backend
+    id_filme: str | None = None
 
 class MovieUpdate(BaseModel):
     titulo: str | None = None
