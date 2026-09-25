@@ -2,16 +2,18 @@ from datetime import date
 from pydantic import BaseModel, ConfigDict, HttpUrl
 
 
-class MovieCreate(BaseModel):
+class MovieBase(BaseModel):
     titulo: str
-    data_lancamento: date
-    ano_lancamento: int
-    duracao_minutos: int
-    status_filme: str
+    data_lancamento: date | None = None
+    ano_lancamento: int | None = None
+    duracao_minutos: int | None = None
+    status_filme: str | None = None
     sinopse: str | None = None
-    url_poster: HttpUrl | None = None
-    url_backdrop: HttpUrl | None = None
+    url_poster: HttpUrl | str | None = None
+    url_backdrop: HttpUrl | str | None = None
 
+class MovieCreate(MovieBase):
+    id_filme: str | None = None  # Se omitido, pode ser gerado no backend
 
 class MovieUpdate(BaseModel):
     titulo: str | None = None
@@ -22,7 +24,6 @@ class MovieUpdate(BaseModel):
     sinopse: str | None = None
     url_poster: HttpUrl | None = None
     url_backdrop: HttpUrl | None = None
-
 
 class MovieResponse(BaseModel):
     sk_movie_id: int
