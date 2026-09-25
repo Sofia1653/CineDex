@@ -1,16 +1,16 @@
-from app.movies.models import DimMovie
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.people.crud import CRUDPeople
-from app.people.models import DimPeople
+from app.people.models import DimPerson
 
 
 class PeopleService:
     def __init__(self, db: AsyncSession):
         self.crud = CRUDPeople(db)
-    
-    def get_person_by_id(self, id_pessoa: str) -> DimPeople | None:
-        return self.crud.get_person_by_id(id_pessoa)
-    
+
+    async def get_person_by_id(self, sk_person_id: str) -> DimPerson | None:
+        return await self.crud.get_person_by_id(sk_person_id)
+
     async def list_people(
         self,
         nome_pessoa: str | None = None,
@@ -38,11 +38,16 @@ class PeopleService:
             "pages": pages,
         }
 
-    async def list_people_by_movie(self, id_filme: str) -> list[DimPeople]:
+    async def list_people_by_movie(self, id_filme: str) -> list[DimPerson]:
         return await self.crud.list_people_by_movie(id_filme)
 
     async def get_movies_by_person(
         self,
         sk_person_id: str,
-    ) -> list[DimMovie]:
-        return await self.crud.get_movies_by_person(sk_person_id)
+    ) -> dict[str, object]:
+        movies = await self.crud.get_movies_by_person(sk_person_id)
+
+        return {
+            "items": movies,
+            "total": len(movies),
+        }

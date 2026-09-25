@@ -1,32 +1,49 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.reviews.models import DimReview
-from app.reviews.schemas import ReviewCreate
+
 from app.reviews.crud import CRUDReview
+from app.reviews.models import MovieReview
+from app.reviews.schemas import MovieReviewCreate, MovieReviewUpdate
+
 
 class ReviewService:
     def __init__(self, db: AsyncSession):
         self.crud = CRUDReview(db)
 
-    async def create_review(self, review: ReviewCreate) -> DimReview:
-        return await self.crud.create_review(review)
+    async def create_review(self, sk_movie_id: str, review: MovieReviewCreate) -> MovieReview:
+        return await self.crud.create_review(sk_movie_id, review)
 
-    async def get_review_by_id(self, id_review: str) -> DimReview | None:
-        return await self.crud.get_review_by_id(id_review)
+    async def get_review_by_id(self, sk_movie_review_id: str) -> MovieReview | None:
+        return await self.crud.get_review_by_id(sk_movie_review_id)
 
-    async def update_review(self, id_review: str, review: ReviewCreate) -> DimReview | None:
-        return await self.review_crud.update_review(id_review, review)
+    async def update_review(
+        self,
+        sk_movie_review_id: str,
+        review: MovieReviewUpdate,
+    ) -> MovieReview | None:
+        return await self.crud.update_review(sk_movie_review_id, review)
 
-    async def delete_review(self, id_review: str) -> DimReview | None:
-        return await self.review_crud.delete_review(id_review)
+    async def delete_review(self, sk_movie_review_id: str) -> MovieReview | None:
+        return await self.crud.delete_review(sk_movie_review_id)
 
     async def list_reviews_by_movie(
         self,
         sk_movie_id: str,
-    ) -> list[DimReview]:
-        return await self.review_crud.list_reviews_by_movie(sk_movie_id)
+        page: int = 1,
+        size: int = 50,
+    ) -> dict[str, object]:
+        reviews, total = await self.crud.list_reviews_by_movie(
+            sk_movie_id,
+            offset=(page - 1) * size,
+            limit=size,
+        )
 
-    async def get_average_rating(
-        self,
-        sk_movie_id: str,
-    ) -> float | None:
-        return await self.review_crud.get_average_rating(sk_movie_id)
+        return {
+            "items": reviews,
+            "total": total,
+            "page": page,
+            "size": size,
+            "pages": (total + size - 1) // size,
+        }
+
+    async def get_review_summary(self, sk_movie_id: str) -> dict[str, object] | None:
+        return await self.crud.get_review_summary(sk_movie_id)
