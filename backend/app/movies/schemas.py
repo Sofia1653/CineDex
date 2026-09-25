@@ -25,17 +25,9 @@ class MovieUpdate(BaseModel):
     url_poster: HttpUrl | None = None
     url_backdrop: HttpUrl | None = None
 
-class MovieResponse(BaseModel):
-    sk_movie_id: int
+class MovieResponse(MovieBase):
+    sk_movie_id: str
     id_filme: str
-    titulo: str
-    data_lancamento: date
-    ano_lancamento: int
-    duracao_minutos: int
-    status_filme: str
-    sinopse: str | None = None
-    url_poster: HttpUrl | None = None
-    url_backdrop: HttpUrl | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
