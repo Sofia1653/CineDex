@@ -1,5 +1,6 @@
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.movies.models import DimMovie, bridge_movie_person
 from app.people.models import DimPerson
@@ -61,6 +62,10 @@ class CRUDPeople:
             select(DimMovie)
             .join(bridge_movie_person, bridge_movie_person.c.sk_movie_id == DimMovie.sk_movie_id)
             .where(bridge_movie_person.c.sk_person_id == sk_person_id)
+            .options(
+                selectinload(DimMovie.genres),
+                selectinload(DimMovie.performance),
+            )
             .order_by(DimMovie.ano_lancamento.desc().nullslast(), DimMovie.titulo.asc())
         )
 

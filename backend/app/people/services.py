@@ -48,6 +48,18 @@ class PeopleService:
         movies = await self.crud.get_movies_by_person(sk_person_id)
 
         return {
-            "items": movies,
+            "items": [
+                {
+                    "sk_movie_id": movie.sk_movie_id,
+                    "id_filme": movie.id_filme,
+                    "titulo": movie.titulo,
+                    "ano_lancamento": movie.ano_lancamento,
+                    "url_poster": movie.url_poster,
+                    "genres": movie.genres,
+                    "nota_tmdb": movie.performance.nota_tmdb if movie.performance else None,
+                    "nota_imdb": movie.performance.nota_imdb if movie.performance else None,
+                }
+                for movie in movies
+            ],
             "total": len(movies),
         }

@@ -1,6 +1,8 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl
+
+from app.genres.schemas import GenreResponse
 
 PersonType = Literal["Ator", "Diretor", "Roteirista"]
 
@@ -26,6 +28,10 @@ class PersonMovieItem(BaseModel):
     id_filme: str
     titulo: str
     ano_lancamento: int | None = None
+    url_poster: HttpUrl | None = None
+    genres: list[GenreResponse] = Field(default_factory=list)
+    nota_tmdb: float | None = None
+    nota_imdb: float | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
