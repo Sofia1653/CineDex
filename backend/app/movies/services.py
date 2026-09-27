@@ -2,14 +2,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.movies.crud import CRUDMovie
 from app.movies.models import DimMovie
-from app.movies.schemas import MovieCreate, MovieUpdate
+from app.movies.schemas import MovieCreate, MovieStatus, MovieStatusListResponse, MovieUpdate
 
 
 class MovieService:
     def __init__(self, db: AsyncSession):
         self.crud = CRUDMovie(db)
 
-    # Paginação 
+    async def list_statuses(self) -> MovieStatusListResponse:
+        """Catálogo de status gravados no banco, usado pelo filtro do catálogo."""
+        rows = await self.crud.list_statuses()
+        items = [MovieStatus(nome_status=status, qtd_filmes=total) for status, total in rows]
+
+        return MovieStatusListResponse(items=items, total=len(items))
+
     async def list_movies(
         self,
         titulo: str | None = None,
@@ -17,7 +23,7 @@ class MovieService:
         genero: str | None = None,
         status_filme: str | None = None,
         page: int = 1,
-        size: int = 20,
+        size: int = 24,
     ):
         offset = (page - 1) * size
 

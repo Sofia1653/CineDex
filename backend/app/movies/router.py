@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
@@ -6,6 +6,7 @@ from app.movies.schemas import (
     MovieCreate,
     MovieListResponse,
     MovieResponse,
+    MovieStatusListResponse,
     MovieUpdate,
 )
 
@@ -15,6 +16,9 @@ router = APIRouter(
     prefix="/movies",
     tags=["movies"],
 )
+
+ANO_MIN = 1800
+ANO_MAX = 2100
 
 
 def get_movie_service(
@@ -36,16 +40,30 @@ async def create_movie(
 
 
 @router.get(
+    "/status",
+    response_model=MovieStatusListResponse,
+    summary="Lista os status de filme existentes no catálogo",
+)
+async def list_movie_statuses(service: MovieService = Depends(get_movie_service)):
+    return await service.list_statuses()
+
+
+@router.get(
     "",
     response_model=MovieListResponse,
 )
 async def list_movies(
-    titulo: str | None = Query(default=None),
-    ano: int | None = Query(default=None, ge=1800),
-    genero: str | None = Query(default=None),
-    status_filme: str | None = Query(default=None),
-    page: int = Query(default=1, ge=1),
-    size: int = Query(default=20, ge=1, le=100),
+    titulo: str | None = Query(default=None, description="Busca parcial pelo título"),
+    ano: int | None = Query(
+        default=None,
+        ge=ANO_MIN,
+        le=ANO_MAX,
+        description=f"Ano exato de lançamento, entre {ANO_MIN} e {ANO_MAX}",
+    ),
+    genero: str | None = Query(default=None, description="Gênero do filme"),
+    status_filme: str | None = Query(default=None, description="Status do filme"),
+    page: int = Query(default=1, ge=1, description="Página desejada, começando em 1"),
+    size: int = Query(default=24, ge=1, le=100, description="Filmes por página"),
     service: MovieService = Depends(get_movie_service),
 ):
     return await service.list_movies(
@@ -63,7 +81,7 @@ async def list_movies(
     response_model=MovieResponse,
 )
 async def get_movie(
-    id_filme: str,
+    id_filme: str = Path(description="Identificador público do filme"),
     service: MovieService = Depends(get_movie_service),
 ):
     movie = await service.get_movie_by_id_filme(id_filme, load_relations=True)
@@ -71,7 +89,7 @@ async def get_movie(
     if movie is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Filme não encontrado",
+            detail=f"Não encontramos o filme '{id_filme}'.",
         )
 
     return movie
@@ -94,7 +112,7 @@ async def update_movie(
     if updated_movie is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Filme não encontrado",
+            detail=f"Não encontramos o filme '{id_filme}' para atualizar.",
         )
 
     return updated_movie
@@ -113,7 +131,7 @@ async def delete_movie(
     if movie is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Filme não encontrado",
+            detail=f"Não encontramos o filme '{id_filme}' para remover.",
         )
 
     return None

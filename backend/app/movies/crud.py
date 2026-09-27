@@ -167,6 +167,24 @@ class CRUDMovie:
 
         return movies, total
 
+    async def list_statuses(self) -> list[tuple[str, int]]:
+        """Lista os status realmente gravados em `dim_movies`, com a contagem de filmes.
+
+        O filtro de status do catálogo é alimentado por este método: assim a
+        interface nunca oferece um valor que não existe na base.
+        """
+        query = (
+            select(DimMovie.status_filme, func.count(DimMovie.sk_movie_id))
+            .where(DimMovie.status_filme.is_not(None))
+            .where(DimMovie.status_filme != "")
+            .group_by(DimMovie.status_filme)
+            .order_by(func.count(DimMovie.sk_movie_id).desc(), DimMovie.status_filme.asc())
+        )
+
+        rows = await self.db.execute(query)
+
+        return [(status, int(total)) for status, total in rows.all()]
+
     async def update_movie(self, id_filme: str, movie: MovieUpdate) -> DimMovie | None:
         # As coleções precisam estar carregadas: reatribuí-las exige ler o
         # estado atual, o que dispara lazy load (proibido em async).

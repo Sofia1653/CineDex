@@ -61,3 +61,17 @@ class MovieListResponse(BaseModel):
     page: int
     size: int
     pages: int
+
+
+class MovieStatus(BaseModel):
+    """Status de filme existente na base, usado para popular o filtro."""
+
+    nome_status: str
+    qtd_filmes: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class MovieStatusListResponse(BaseModel):
+    items: list[MovieStatus]
+    total: int
