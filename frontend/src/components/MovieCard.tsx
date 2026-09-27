@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
 import { POSTER_FALLBACK } from "./poster";
+import { Rating } from "./Rating";
+import { formatarEstrelas, notaParaEstrelas } from "../utils/nota";
 import type { Movie } from "../types/movie";
 
 interface MovieCardProps {
@@ -18,7 +20,7 @@ export function MovieCard({ movie, onSelect }: MovieCardProps) {
         <img src={movie.url_poster || POSTER_FALLBACK} alt={`Poster de ${movie.titulo}`} loading="lazy" />
 
         <div className="movie-info">
-          <h3>{movie.titulo}</h3>
+          <h3 title={movie.titulo}>{movie.titulo}</h3>
           <p className="movie-meta">
             {movie.ano_lancamento ?? "—"}
             {genreNames ? ` · ${genreNames}` : ""}
@@ -26,7 +28,8 @@ export function MovieCard({ movie, onSelect }: MovieCardProps) {
 
           {rating !== null ? (
             <p className="movie-rating">
-              ⭐ {rating.toFixed(1)} <span>({reviewCount})</span>
+              <Rating value={notaParaEstrelas(rating)} /> <span>{formatarEstrelas(rating)}</span>{" "}
+              <span>({reviewCount})</span>
             </p>
           ) : (
             <p className="movie-rating movie-rating-empty">Sem avaliações</p>
