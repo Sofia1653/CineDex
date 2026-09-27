@@ -8,8 +8,8 @@ from app.movies.schemas import (
     MovieResponse,
     MovieUpdate,
 )
-from .services import MovieService
 
+from .services import MovieService
 
 router = APIRouter(
     prefix="/movies",
@@ -66,7 +66,7 @@ async def get_movie(
     id_filme: str,
     service: MovieService = Depends(get_movie_service),
 ):
-    movie = await service.get_movie_by_id_filme(id_filme)
+    movie = await service.get_movie_by_id_filme(id_filme, load_relations=True)
 
     if movie is None:
         raise HTTPException(

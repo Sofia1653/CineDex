@@ -1,9 +1,9 @@
-from app.movies.schemas import MovieUpdate
-from app.movies.schemas import MovieCreate
-from app.movies.models import DimMovie
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.movies.crud import CRUDMovie
-    
+from app.movies.models import DimMovie
+from app.movies.schemas import MovieCreate, MovieUpdate
+
 
 class MovieService:
     def __init__(self, db: AsyncSession):
@@ -43,7 +43,9 @@ class MovieService:
     async def create_movie(self, movie: MovieCreate) -> DimMovie:
         return await self.crud.create_movie(movie)
     
-    async def get_movie_by_id_filme(self, id_filme: str, load_relations: bool = False) -> DimMovie | None:
+    async def get_movie_by_id_filme(
+        self, id_filme: str, load_relations: bool = False
+    ) -> DimMovie | None:
         return await self.crud.get_movie_by_id_filme(id_filme, load_relations)
     
     async def get_movie_by_sk(self, sk_movie_id: str) -> DimMovie | None:

@@ -101,7 +101,9 @@ class DimMovie(Base):
         order_by="DimCompany.nome_produtora",
     )
     people: Mapped[list["DimPerson"]] = relationship(
-        secondary=bridge_movie_person, back_populates="movies"
+        secondary=bridge_movie_person,
+        back_populates="movies",
+        order_by="(DimPerson.tipo_pessoa, DimPerson.nome_pessoa)",
     )
     performance: Mapped["FactMoviePerformance | None"] = relationship(
         back_populates="movie", cascade="all, delete-orphan", uselist=False
