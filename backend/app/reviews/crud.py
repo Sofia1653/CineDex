@@ -1,6 +1,7 @@
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.db.base import generate_surrogate_key
 from app.reviews.models import DimReview, MovieReview
 from app.reviews.schemas import MovieReviewCreate, MovieReviewUpdate
 
@@ -9,9 +10,57 @@ class CRUDReview:
     def __init__(self, db: AsyncSession):
         self.db = db
 
+    async def recalculate_summary(self, sk_movie_id: str) -> DimReview | None:
+        """Recalcula o resumo consolidado do filme a partir das avaliações reais.
+
+        `dim_reviews` alimenta o card do catálogo, o preview e a página de
+        detalhe. Sem esta recomputação a nota e a quantidade de avaliações ficam
+        desatualizadas depois que o usuário cria, edita ou remove uma avaliação.
+        """
+        total, media = (
+            await self.db.execute(
+                select(
+                    func.count(MovieReview.sk_movie_review_id),
+                    func.avg(MovieReview.nota),
+                ).where(MovieReview.sk_movie_id == sk_movie_id)
+            )
+        ).one()
+
+        summary = (
+            await self.db.execute(select(DimReview).where(DimReview.sk_movie_id == sk_movie_id))
+        ).scalar_one_or_none()
+
+        if not total:
+            # Sem avaliações o filme não deve exibir nota nem contagem.
+            if summary is not None:
+                summary.qtd_avaliacoes_usuarios = 0
+                summary.nota_media_usuarios = None
+                await self.db.flush()
+            return summary
+
+        nota_media = round(float(media), 2) if media is not None else None
+
+        if summary is None:
+            summary = DimReview(
+                sk_review_id=generate_surrogate_key(),
+                sk_movie_id=sk_movie_id,
+                qtd_avaliacoes_usuarios=int(total),
+                nota_media_usuarios=nota_media,
+            )
+            self.db.add(summary)
+        else:
+            summary.qtd_avaliacoes_usuarios = int(total)
+            summary.nota_media_usuarios = nota_media
+
+        await self.db.flush()
+
+        return summary
+
     async def create_review(self, sk_movie_id: str, review: MovieReviewCreate) -> MovieReview:
         db_review = MovieReview(sk_movie_id=sk_movie_id, **review.model_dump())
         self.db.add(db_review)
+        await self.db.flush()
+        await self.recalculate_summary(sk_movie_id)
         await self.db.commit()
         await self.db.refresh(db_review)
         return db_review
@@ -28,9 +77,13 @@ class CRUDReview:
         if db_review is None:
             return None
 
+        sk_movie_id = db_review.sk_movie_id
+
         for field, value in review.model_dump(exclude_unset=True).items():
             setattr(db_review, field, value)
 
+        await self.db.flush()
+        await self.recalculate_summary(sk_movie_id)
         await self.db.commit()
         await self.db.refresh(db_review)
         return db_review
@@ -40,7 +93,11 @@ class CRUDReview:
         if db_review is None:
             return None
 
+        sk_movie_id = db_review.sk_movie_id
+
         await self.db.delete(db_review)
+        await self.db.flush()
+        await self.recalculate_summary(sk_movie_id)
         await self.db.commit()
         return db_review
 
@@ -71,8 +128,8 @@ class CRUDReview:
     async def get_review_summary(self, sk_movie_id: str) -> dict[str, object] | None:
         """Resume as avaliações do filme sem alterar o banco.
 
-        Quando existem avaliações individuais, elas são a fonte da verdade. Caso
-        contrário, usa o resumo consolidado pré-carregado pela seed.
+        As avaliações individuais em `movie_reviews` são a fonte da verdade. Se o
+        filme ainda não tiver nenhuma, usa o resumo consolidado pré-carregado.
         """
         query = select(
             func.count(MovieReview.sk_movie_review_id),
@@ -90,7 +147,7 @@ class CRUDReview:
             }
 
         summary = await self.find_summary(sk_movie_id)
-        if summary is None:
+        if summary is None or not summary.qtd_avaliacoes_usuarios:
             return None
 
         return {

@@ -25,7 +25,11 @@ import sqlite3
 import sys
 import time
 from datetime import datetime, timezone
+from hashlib import sha256
 from pathlib import Path
+from uuid import uuid4
+
+from scripts.data_cleaning import normalize_person_name
 
 # Configuração de logging informativo
 logging.basicConfig(
@@ -48,6 +52,7 @@ def clean_str(val: str | None) -> str | None:
         return None
     cleaned = val.strip()
     return cleaned if cleaned else None
+
 
 
 def clean_int(val: str | None, default: int | None = None) -> int | None:
@@ -196,14 +201,17 @@ def seed_people(con: sqlite3.Connection, data_dir: Path) -> set[str]:
     valid_ids: set[str] = set()
     seen_pairs: set[tuple[str, str]] = set()
     records: list[tuple[str, str, str]] = []
+    descartados = 0
 
     with open(csv_file, "r", encoding="utf-8", errors="replace") as f:
         reader = csv.DictReader(f)
         for row in reader:
             sk = clean_str(row.get("sk_person_id"))
-            nome = clean_str(row.get("nome_pessoa"))
+            nome = normalize_person_name(row.get("nome_pessoa"))
             tipo = clean_str(row.get("tipo_pessoa"))
             if not sk or not nome or not tipo:
+                if sk and not nome:
+                    descartados += 1
                 continue
             if tipo not in VALID_PERSON_TYPES:
                 continue
@@ -224,6 +232,8 @@ def seed_people(con: sqlite3.Connection, data_dir: Path) -> set[str]:
         len(records),
         time.time() - t0,
     )
+    if descartados:
+        logger.info("dim_people: %d registros descartados por não serem nomes válidos", descartados)
     return valid_ids
 
 
@@ -624,6 +634,48 @@ def seed_movie_reviews(
     )
 
 
+def rebuild_dim_reviews(con: sqlite3.Connection) -> None:
+    """Recalcula `dim_reviews` a partir das avaliações reais em `movie_reviews`.
+
+    O CSV de `dim_reviews` vem pré-agregado da fonte e não bate com as avaliações
+    que realmente existem na base (nota e quantidade diferentes, ou nem linha para
+    o filme). Como `dim_reviews` é o que alimenta o card do catálogo, o preview e a
+    página de detalhe, ele é reescrito aqui para sempre refletir as avaliações reais.
+    """
+    t0 = time.time()
+    logger.info("Recalculando dim_reviews a partir de movie_reviews...")
+
+    agregados = {
+        sk_movie_id: (total, media)
+        for sk_movie_id, total, media in con.execute(
+            """
+            SELECT sk_movie_id, count(*), round(avg(nota), 2)
+            FROM movie_reviews
+            GROUP BY sk_movie_id
+            """
+        )
+    }
+
+    con.execute("DELETE FROM dim_reviews;")
+    con.executemany(
+        """
+        INSERT INTO dim_reviews (
+            sk_review_id, sk_movie_id, qtd_avaliacoes_usuarios, nota_media_usuarios
+        ) VALUES (?, ?, ?, ?);
+        """,
+        [
+            (sha256(uuid4().bytes).hexdigest(), sk_movie_id, total, media)
+            for sk_movie_id, (total, media) in agregados.items()
+        ],
+    )
+    con.commit()
+    logger.info(
+        "dim_reviews: %d resumos recalculados em %.2fs",
+        len(agregados),
+        time.time() - t0,
+    )
+
+
 def run_seed(data_dir: Path, db_path: Path, clear_existing: bool = True) -> None:
     """Orquestra todo o processo de carga de dados e validação no banco SQLite."""
     start_time = time.time()
@@ -669,6 +721,10 @@ def run_seed(data_dir: Path, db_path: Path, clear_existing: bool = True) -> None
         seed_fact_performance(con, data_dir, valid_movie_ids)
         seed_dim_reviews(con, data_dir, valid_movie_ids)
         seed_movie_reviews(con, data_dir, valid_movie_ids)
+
+        # 3.1 O resumo consolidado passa a refletir as avaliações reais, para que a
+        # nota e a contagem exibidas no catálogo nunca divirjam da lista de resenhas.
+        rebuild_dim_reviews(con)
 
         # 4. Verificação de integridade referencial
         logger.info("Verificando integridade das chaves estrangeiras...")
