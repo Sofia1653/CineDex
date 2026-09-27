@@ -1,4 +1,5 @@
 import { Rating } from "./Rating";
+import { formatarEstrelas, notaParaEstrelas } from "../utils/nota";
 import type { Review } from "../types/review";
 
 interface ReviewCardProps {
@@ -12,7 +13,8 @@ export function ReviewCard({ review, onEdit, onDelete }: ReviewCardProps) {
     <article className="review-card">
       <header>
         <h3>{review.nome}</h3>
-        <Rating value={review.nota} />
+        <Rating value={notaParaEstrelas(review.nota)} />
+        <span className="muted">{formatarEstrelas(review.nota)}</span>
       </header>
 
       <p>{review.comentario || "Sem comentário."}</p>

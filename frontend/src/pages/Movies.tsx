@@ -5,11 +5,24 @@ import { MoviePreview } from "../components/MoviePreview";
 import { Pagination } from "../components/Pagination";
 import { useFetch } from "../hooks/useFetch";
 import { getGenres } from "../services/genreService";
-import { getMovies } from "../services/movieService";
-import type { Movie } from "../types/movie";
+import { getMovieStatuses, getMovies } from "../services/movieService";
+import type { Movie, MovieStatus } from "../types/movie";
 import type { GenreListItem } from "../types/genre";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 24;
+const ANO_MIN = 1800;
+const ANO_MAX = 2100;
+
+function parseAno(value: string): number | null {
+  const trimmed = value.trim();
+
+  if (trimmed === "" || !/^\d+$/.test(trimmed)) {
+    return null;
+  }
+
+  const parsed = Number.parseInt(trimmed, 10);
+  return parsed >= ANO_MIN && parsed <= ANO_MAX ? parsed : null;
+}
 
 export function Movies() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -21,9 +34,29 @@ export function Movies() {
   const status = searchParams.get("status_filme") ?? "";
   const page = Number.parseInt(searchParams.get("page") ?? "1", 10) || 1;
 
+  // O campo de ano é controlado localmente: enquanto o ano não está completo o
+  // valor não pode ir para a URL, senão o input voltaria a um estado vazio a cada
+  // tecla digitada.
+  const [anoDigitado, setAnoDigitado] = useState(ano);
+  const [anoAplicado, setAnoAplicado] = useState(ano);
+  const anoInvalido = anoDigitado.trim() !== "" && parseAno(anoDigitado) === null;
+
+  // Navegar pelo histórico do navegador ou limpar os filtros muda o ano da URL,
+  // e o campo precisa acompanhar. O ajuste acontece durante a renderização para
+  // não gerar um segundo render desnecessário.
+  if (ano !== anoAplicado) {
+    setAnoAplicado(ano);
+    setAnoDigitado(ano);
+  }
+
   const { data: genres } = useFetch<GenreListItem[]>(
     useCallback(() => getGenres().then((response) => response.items), []),
     "genres"
+  );
+
+  const { data: statuses } = useFetch<MovieStatus[]>(
+    useCallback(() => getMovieStatuses().then((response) => response.items), []),
+    "movie-statuses"
   );
 
   const loadMovies = useCallback(
@@ -58,11 +91,29 @@ export function Movies() {
     setSearchParams(next);
   }
 
+  function onAnoChange(value: string) {
+    setAnoDigitado(value);
+
+    const parsed = parseAno(value);
+
+    if (parsed !== null) {
+      applyFilter("ano", String(parsed));
+    } else if (value.trim() === "") {
+      applyFilter("ano", "");
+    }
+  }
+
   function goToPage(next: number) {
     const params = new URLSearchParams(searchParams);
     params.set("page", String(next));
     setSearchParams(params);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function clearFilters() {
+    setAnoDigitado("");
+    setAnoAplicado("");
+    setSearchParams(new URLSearchParams());
   }
 
   const hasFilters = Boolean(titulo || ano || genero || status);
@@ -77,6 +128,16 @@ export function Movies() {
       </div>
 
       <div className="filters">
+        <label>
+          Título
+          <input
+            type="search"
+            placeholder="Todos"
+            value={titulo}
+            onChange={(event) => applyFilter("titulo", event.target.value.trim())}
+          />
+        </label>
+
         <label>
           Gênero
           <select value={genero} onChange={(event) => applyFilter("genero", event.target.value)}>
@@ -93,11 +154,14 @@ export function Movies() {
           Ano
           <input
             type="number"
-            min="1800"
-            max="2100"
+            inputMode="numeric"
+            min={ANO_MIN}
+            max={ANO_MAX}
             placeholder="Todos"
-            value={ano}
-            onChange={(event) => applyFilter("ano", event.target.value)}
+            value={anoDigitado}
+            aria-invalid={anoInvalido}
+            aria-describedby={anoInvalido ? "ano-erro" : undefined}
+            onChange={(event) => onAnoChange(event.target.value)}
           />
         </label>
 
@@ -108,25 +172,26 @@ export function Movies() {
             onChange={(event) => applyFilter("status_filme", event.target.value)}
           >
             <option value="">Todos</option>
-            <option value="Released">Released</option>
-            <option value="Post Production">Post Production</option>
-            <option value="In Production">In Production</option>
-            <option value="Planned">Planned</option>
-            <option value="Rumored">Rumored</option>
-            <option value="Cancelled">Cancelled</option>
+            {(statuses ?? []).map((item) => (
+              <option key={item.nome_status} value={item.nome_status}>
+                {item.nome_status} ({item.qtd_filmes})
+              </option>
+            ))}
           </select>
         </label>
 
         {hasFilters && (
-          <button
-            type="button"
-            className="btn"
-            onClick={() => setSearchParams(new URLSearchParams())}
-          >
+          <button type="button" className="btn" onClick={clearFilters}>
             Limpar filtros
           </button>
         )}
       </div>
+
+      {anoInvalido && (
+        <p className="form-error" id="ano-erro" role="alert">
+          Informe um ano entre {ANO_MIN} e {ANO_MAX}, ou deixe em branco para ver todos os filmes.
+        </p>
+      )}
 
       {error && <p className="form-error">{error}</p>}
 

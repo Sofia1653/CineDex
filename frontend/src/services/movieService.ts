@@ -1,5 +1,11 @@
 import { apiGet, apiSend, buildQuery } from "./api";
-import type { Movie, MovieFilters, MovieListResponse, MoviePayload } from "../types/movie";
+import type {
+  Movie,
+  MovieFilters,
+  MovieListResponse,
+  MoviePayload,
+  MovieStatusListResponse,
+} from "../types/movie";
 
 export async function getMovies(filters: MovieFilters = {}): Promise<MovieListResponse> {
   return apiGet<MovieListResponse>(
@@ -12,6 +18,10 @@ export async function getMovies(filters: MovieFilters = {}): Promise<MovieListRe
       size: filters.size,
     })}`
   );
+}
+
+export async function getMovieStatuses(): Promise<MovieStatusListResponse> {
+  return apiGet<MovieStatusListResponse>("/movies/status");
 }
 
 export async function getMovie(idFilme: string): Promise<Movie> {

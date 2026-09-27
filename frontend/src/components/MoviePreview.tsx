@@ -2,6 +2,8 @@ import { Link } from "react-router-dom";
 import { Modal } from "./Modal";
 import { Rating } from "./Rating";
 import { POSTER_FALLBACK } from "./poster";
+import { formatPersonName } from "../utils/personName";
+import { formatarEstrelas, notaParaEstrelas } from "../utils/nota";
 import type { Movie } from "../types/movie";
 import type { Person } from "../types/person";
 
@@ -31,7 +33,7 @@ function RoleLine({ title, people, limit }: { title: string; people: Person[]; l
       {shown.map((person, index) => (
         <span key={person.sk_person_id}>
           {index > 0 && ", "}
-          <Link to={`/people/${person.sk_person_id}`}>{person.nome_pessoa}</Link>
+          <Link to={`/people/${person.sk_person_id}`}>{formatPersonName(person.nome_pessoa)}</Link>
         </span>
       ))}
       {limit && people.length > limit && <span> e mais {people.length - limit}</span>}
@@ -75,7 +77,8 @@ export function MoviePreview({ movie, onClose }: MoviePreviewProps) {
           <p className="preview-rating">
             {rating !== null ? (
               <>
-                <Rating value={rating} /> <span>{rating.toFixed(1)}</span>{" "}
+                <Rating value={notaParaEstrelas(rating)} />{" "}
+                <span>{formatarEstrelas(rating)}</span>{" "}
                 <span className="muted">({reviewCount} avaliações)</span>
               </>
             ) : (

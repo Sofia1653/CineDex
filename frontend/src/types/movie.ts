@@ -49,3 +49,13 @@ export interface MovieFilters {
   page?: number;
   size?: number;
 }
+
+export interface MovieStatus {
+  nome_status: string;
+  qtd_filmes: number;
+}
+
+export interface MovieStatusListResponse {
+  items: MovieStatus[];
+  total: number;
+}
