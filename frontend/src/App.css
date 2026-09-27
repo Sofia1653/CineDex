@@ -317,18 +317,21 @@ legend {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
   gap: 16px;
+  align-items: start;
 }
 
 .movie-card {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  height: 100%;
 }
 
 .movie-card-button {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  height: 100%;
   padding: 0;
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -350,26 +353,49 @@ legend {
   object-fit: cover;
   display: block;
   background: var(--surface);
+  flex: 0 0 auto;
 }
 
 .movie-info {
   padding: 0 10px 10px;
   display: flex;
   flex-direction: column;
+  /* Ocupa o resto da altura do card para que ele não encurte quando o título
+     tem uma linha só, mantendo todos os cartões do grid do mesmo tamanho. */
+  flex: 1;
   gap: 4px;
 }
 
 .movie-info h3 {
   font-size: 15px;
   margin: 0;
+  line-height: 1.35;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  /* Reserva as duas linhas do clamp mesmo quando o título é curto. */
+  min-height: 2.7em;
 }
 
-.movie-meta,
+.movie-meta {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .movie-rating {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  /* Empurra a nota para o rodapé do card, alinhando com os demais da linha. */
+  margin-top: auto;
+  padding-top: 4px;
+  min-height: 24px;
   font-size: 13px;
   color: var(--text);
 }
@@ -640,16 +666,60 @@ legend {
   color: #f5a623;
   letter-spacing: 2px;
   font-size: 16px;
+  line-height: 1;
+  white-space: nowrap;
 }
 
+.preview-rating,
+.detail-rating {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.rating-input {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+}
+
+.rating-input .star-group {
+  position: relative;
+  display: inline-block;
+  width: 26px;
+  height: 24px;
+}
+
+/* A estrela vazia fica no fluxo e a preenchida é recortada pela metade
+   esquerda, o que permite clicar na metade do estrela. */
 .rating-input .star {
+  position: absolute;
+  top: 0;
+  left: 0;
   background: none;
   border: none;
+  padding: 0;
   font-size: 22px;
-  line-height: 1;
+  line-height: 24px;
   color: #55505f;
   cursor: pointer;
-  padding: 0 2px;
+}
+
+.rating-input .star-half {
+  width: 13px;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.rating-input .star-full {
+  z-index: 0;
+}
+
+.rating-input .star:hover {
+  transform: scale(1.15);
 }
 
 .rating-input .star-filled {

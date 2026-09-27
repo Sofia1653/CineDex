@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { Pagination } from "../components/Pagination";
 import { useFetch } from "../hooks/useFetch";
 import { getPeople } from "../services/peopleService";
+import { formatPersonName, personInitials } from "../utils/personName";
 import type { PeopleListResponse, PersonType } from "../types/person";
 
 const PAGE_SIZE = 20;
@@ -104,11 +105,11 @@ export function People() {
             <li key={person.sk_person_id}>
               <Link to={`/people/${person.sk_person_id}`} className="person-item">
                 <span className={`person-avatar person-${person.tipo_pessoa.toLowerCase()}`}>
-                  {person.nome_pessoa.slice(0, 1).toUpperCase()}
+                  {personInitials(person.nome_pessoa)}
                 </span>
 
                 <span className="person-info">
-                  <strong>{person.nome_pessoa}</strong>
+                  <strong>{formatPersonName(person.nome_pessoa)}</strong>
                   <span className="muted">{TYPE_LABEL[person.tipo_pessoa]}</span>
                 </span>
               </Link>

@@ -3,6 +3,8 @@ import { Link, useParams } from "react-router-dom";
 import { Rating } from "../components/Rating";
 import { useFetch } from "../hooks/useFetch";
 import { getPerson, getPersonMovies } from "../services/peopleService";
+import { formatPersonName, personInitials } from "../utils/personName";
+import { formatarEstrelas, notaParaEstrelas } from "../utils/nota";
 import type { Person, PersonMovie, PersonMovieListResponse } from "../types/person";
 import { POSTER_FALLBACK } from "../components/poster";
 
@@ -31,7 +33,7 @@ export function PersonDetails() {
   const { data: movieList } = useFetch<PersonMovieListResponse>(loadMovies, skPersonId);
 
   useEffect(() => {
-    document.title = person ? `CineDex · ${person.nome_pessoa}` : "CineDex · Pessoa";
+    document.title = person ? `CineDex · ${formatPersonName(person.nome_pessoa)}` : "CineDex · Pessoa";
   }, [person]);
 
   const movies = useMemo(() => movieList?.items ?? [], [movieList]);
@@ -63,6 +65,8 @@ export function PersonDetails() {
     );
   }
 
+  const nome = person ? formatPersonName(person.nome_pessoa) : "";
+
   return (
     <section className="page">
       <div className="detail-toolbar">
@@ -73,11 +77,11 @@ export function PersonDetails() {
 
       <header className="person-header">
         <span className={`person-avatar person-avatar-lg person-${person.tipo_pessoa.toLowerCase()}`}>
-          {person.nome_pessoa.slice(0, 1).toUpperCase()}
+          {personInitials(person.nome_pessoa)}
         </span>
 
         <div>
-          <h1>{person.nome_pessoa}</h1>
+          <h1>{nome}</h1>
           <p className="muted">{person.tipo_pessoa}</p>
 
           <ul className="person-stats">
@@ -86,7 +90,7 @@ export function PersonDetails() {
               <span>{movies.length === 1 ? "filme" : "filmes"}</span>
             </li>
             <li>
-              <strong>{mediaNota !== null ? mediaNota.toFixed(1) : "—"}</strong>
+              <strong>{mediaNota !== null ? formatarEstrelas(mediaNota) : "—"}</strong>
               <span>média das notas</span>
             </li>
           </ul>
@@ -136,8 +140,8 @@ export function PersonDetails() {
                     <td>
                       {nota !== null ? (
                         <span className="person-movie-rating">
-                          <Rating value={nota} />
-                          {nota.toFixed(1)}
+                          <Rating value={notaParaEstrelas(nota)} />
+                          {formatarEstrelas(nota)}
                         </span>
                       ) : (
                         "—"

@@ -7,6 +7,8 @@ import { ReviewCard } from "../components/ReviewCard";
 import { useFetch } from "../hooks/useFetch";
 import { deleteMovie, getMovie } from "../services/movieService";
 import { createReview, deleteReview, getReviews, updateReview } from "../services/reviewService";
+import { formatPersonName } from "../utils/personName";
+import { estrelasParaNota, formatarEstrelas, notaParaEstrelas } from "../utils/nota";
 import type { Movie } from "../types/movie";
 import type { Person } from "../types/person";
 import type { Review, ReviewListResponse, ReviewPayload } from "../types/review";
@@ -36,7 +38,7 @@ function PersonList({ title, people }: { title: string; people: Person[] }) {
       {people.map((person, index) => (
         <span key={person.sk_person_id}>
           {index > 0 && ", "}
-          <Link to={`/people/${person.sk_person_id}`}>{person.nome_pessoa}</Link>
+          <Link to={`/people/${person.sk_person_id}`}>{formatPersonName(person.nome_pessoa)}</Link>
         </span>
       ))}
     </p>
@@ -205,7 +207,8 @@ export function MovieDetails() {
           <p className="detail-rating">
             {rating !== null ? (
               <>
-                <Rating value={rating} /> <span>{rating.toFixed(1)}</span>{" "}
+                <Rating value={notaParaEstrelas(rating)} />{" "}
+                <span>{formatarEstrelas(rating)}</span>{" "}
                 <span className="muted">({reviewCount} avaliações)</span>
               </>
             ) : (
@@ -243,8 +246,11 @@ export function MovieDetails() {
 
             <div className="review-form-rating">
               <span>Nota</span>
-              <Rating value={form.nota} onChange={(nota) => setForm({ ...form, nota })} />
-              <span className="muted">({form.nota.toFixed(0)}/10)</span>
+              <Rating
+                value={notaParaEstrelas(form.nota)}
+                onChange={(estrelas) => setForm({ ...form, nota: estrelasParaNota(estrelas) })}
+              />
+              <span className="muted">({formatarEstrelas(form.nota)}/5)</span>
             </div>
           </div>
 
