@@ -303,16 +303,3 @@ npm run dev
 | Swagger | 8000 | http://127.0.0.1:8000/docs |
 | ReDoc | 8000 | http://127.0.0.1:8000/redoc |
 
----
-
-# 🧪 Testando a API
-
-Após iniciar o backend, a API pode ser testada diretamente pelo Swagger:
-
-```text
-http://127.0.0.1:8000/docs
-```
-
-É possível executar os endpoints diretamente pela interface e visualizar os dados retornados pela API.
-
----
